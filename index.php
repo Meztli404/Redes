@@ -2,8 +2,10 @@
 function calcularSubredes($ip, $numSubredes) {
     $resultados = [];
 
+    // Convertir la IP a entero
     $ip_long = ip2long($ip);
 
+    // Clase por defecto (A, B, C) para máscara base
     $octetos = explode(".", $ip);
     if ($octetos[0] <= 126) $bitsBase = 8;
     elseif ($octetos[0] <= 191) $bitsBase = 16;
@@ -11,6 +13,7 @@ function calcularSubredes($ip, $numSubredes) {
 
     $mascaraBase = $bitsBase;
 
+    // Calcular bits necesarios para subredes
     $bitsSubred = ceil(log($numSubredes, 2));
     $nuevaMascara = $mascaraBase + $bitsSubred;
 
@@ -133,3 +136,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <?php endif; ?>
 </body>
 </html>
+
+
