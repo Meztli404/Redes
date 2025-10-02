@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Subredes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f9;
+            padding: 20px;
+        }
+        h2 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
+        }
+        input, button {
+            padding: 8px;
+            margin: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background: #333;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h2>Calculadora de Subredes</h2>
+    <form id="subnetForm">
+        <label>Dirección IP:</label>
+        <input type="text" id="ip" placeholder="192.168.1.0" required>
+        <label>Cantidad de Subredes:</label>
+        <input type="number" id="subredes" required>
+        <button type="submit">Calcular</button>
+    </form>
+
+    <table id="resultTable" style="display:none;">
+        <tr>
+            <th>Subred</th>
+            <th>Dirección de Red</th>
+            <th>Rango de Hosts</th>
+            <th>Broadcast</th>
+            <th>Máscara</th>
+            <th>Dispositivos (Hosts)</th>
+        </tr>
+    </table>
+
+    <script>
+        // Función para validar la dirección IP
+        function validarIP(ip) {
+            const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+            return ipRegex.test(ip);
+        }
+
+        // Función para calcular las subredes
+        function calcularSubredes(ip, numSubredes) {
+            const resultados = [];
+            const ipArray = ip.split('.').map(Number);
+            const ipLong = (ipArray[0] << 24) | (ipArray[1] << 16) | (ipArray[2] << 8) | ipArray[3];
+            let bitsBase = ipArray[0] <= 126 ? 8 : (ipArray[0] <= 191 ? 16 : 24);
+            const mascaraBase = bitsBase;
+
+            // Calcular bits necesarios para subredes
+            const bitsSubred = Math.ceil(Math.log2(numSubredes));
+            const nuevaMascara = mascaraBase + bitsSubred;
+
+            const totalSubredes = Math.pow(2, bitsSubred);
+            const hostsPorSubred = Math.pow(2, (32 - nuevaMascara)) - 2;
+            const incremento = Math.pow(2, (32 - nuevaMascara));
+
+            for (let i = 0; i < totalSubredes; i++) {
+                const network = (ipLong & (-1 << (32 - mascaraBase))) + (i * incremento);
+                const broadcast = network + incremento - 1;
+                const hostMin = network + 1;
+                const hostMax = broadcast - 1;
+
+                resultados.push({
+                    subred: i + 1,
+                    direccion_red: long2ip(network),
+                    rango_host: long2ip(hostMin) + " - " + long2ip(hostMax),
+                    broadcast: long2ip(broadcast),
+                    mascara: long2ip(-1 << (32 - nuevaMascara)),
+                    hosts_disponibles: hostsPorSubred
+                });
+            }
+
+            return resultados;
+        }
+
+        // Convertir un número entero a dirección IP
+        function long2ip(long) {
+            return ((long >>> 24) & 255) + '.' + ((long >> 16) & 255) + '.' + ((long >> 8) & 255) + '.' + (long & 255);
+        }
+
+        // Manejo del formulario
+        document.getElementById('subnetForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const ip = document.getElementById('ip').value.trim();
+            const subredes = parseInt(document.getElementById('subredes').value);
+
+            if (!validarIP(ip)) {
+                alert("Ingrese una dirección IP válida.");
+                return;
+            }
+
+            if (isNaN(subredes) || subredes <= 0) {
+                alert("Ingrese un número válido de subredes.");
+                return;
+            }
+
+            const resultado = calcularSubredes(ip, subredes);
+            mostrarResultados(resultado);
+        });
+
+        // Mostrar los resultados en la tabla
+        function mostrarResultados(resultado) {
+            const table = document.getElementById('resultTable');
+            table.style.display = 'block';
+            const tbody = table.querySelector('tbody');
+            if (tbody) tbody.remove();
+
+            const newTbody = document.createElement('tbody');
+            resultado.forEach(fila => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${fila.subred}</td>
+                    <td>${fila.direccion_red}</td>
+                    <td>${fila.rango_host}</td>
+                    <td>${fila.broadcast}</td>
+                    <td>${fila.mascara}</td>
+                    <td>${fila.hosts_disponibles}</td>
+                `;
+                newTbody.appendChild(row);
+            });
+            table.appendChild(newTbody);
+        }
+    </script>
+</body>
+</html>
+
+
+
